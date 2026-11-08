@@ -84,7 +84,8 @@ dialog#warn p{margin:0 0 16px}
    <div><b id="best">0</b>Best streak</div>
   </div>
  </div>
- <div class="modes" id="sports" role="group" aria-label="Sport"><button data-p="nfl" aria-pressed="true">NFL</button><button data-p="mlb" aria-pressed="false">MLB</button><button data-p="nba" aria-pressed="false">NBA</button><button data-p="nhl" aria-pressed="false">NHL</button><button data-p="wnba" aria-pressed="false">WNBA</button></div>
+ <div class="modes" id="sports" role="group" aria-label="Sport"><button data-p="nfl" aria-pressed="true">NFL</button><button data-p="mlb" aria-pressed="false">MLB</button><button data-p="nba" aria-pressed="false">NBA</button><button data-p="nhl" aria-pressed="false">NHL</button><button data-p="wnba" aria-pressed="false">WNBA</button><button data-p="soccer" aria-pressed="false">Soccer</button></div>
+ <div class="modes" id="leagues" role="group" aria-label="Soccer league" hidden><button data-l="epl" aria-pressed="false">Premier League</button><button data-l="laliga" aria-pressed="false">La Liga</button><button data-l="bundesliga" aria-pressed="false">Bundesliga</button><button data-l="seriea" aria-pressed="false">Serie A</button><button data-l="ligue1" aria-pressed="false">Ligue 1</button><button data-l="ucl" aria-pressed="false">Champions League</button><button data-l="nwsl" aria-pressed="false">NWSL</button></div>
   <div class="modes" id="scopes"role="group" aria-label="Game type"><button data-s="season" aria-pressed="true">Single season</button><button data-s="career" aria-pressed="false">Career</button><span id="sdesc"></span></div>
   <div class="modes" role="group" aria-label="Difficulty"><button data-m="easy" aria-pressed="false">Easy</button><button data-m="hard" aria-pressed="true">Hard</button><span id="mdesc"></span></div>
  <div class="yrs">
@@ -100,15 +101,16 @@ dialog#warn p{margin:0 0 16px}
  <p class="hint">Press 1 or 2 to pick, Enter for the next round. You must answer each round to move on.</p>
  <dialog id="warn" aria-labelledby="wt"><form method="dialog"><h3 id="wt">Change the dates?</h3><p>Changing the date range will reset this round and your current score. Your best streak is kept.</p><div class="dlg"><button value="cancel">Keep playing</button><button value="ok" id="wok">Change dates</button></div></form></dialog>
  <footer class="legal">
-  <p>An unofficial fan project for fun. Not affiliated with, endorsed by, or sponsored by the NFL, MLB, NBA, WNBA, NHL, or any team or player. All names, team names and abbreviations are the property of their respective owners.</p>
-  <p>Stats from public data sources: NFL via nflverse, MLB via the MLB Stats API, NBA and WNBA via NBA.com stats, NHL via the NHL stats API. Figures cover regular seasons only, may contain errors or gaps, and career totals include only the seasons shown in the data range.</p>
+  <p>An unofficial fan project for fun. Not affiliated with, endorsed by, or sponsored by the NFL, MLB, NBA, WNBA, NHL, any soccer league or club, or any team or player. All names, team names and abbreviations are the property of their respective owners.</p>
+  <p>Stats from public data sources: NFL via nflverse, MLB via the MLB Stats API, NBA and WNBA via NBA.com stats, NHL via the NHL stats API, soccer via ESPN. Soccer data lists only the top 100 players for each stat in each league season, and a few seasons (such as 2020-21 in some leagues) are not available. Figures cover regular seasons only, may contain errors or gaps, and career totals include only the seasons shown in the data range.</p>
   <p>This site has no accounts. It uses Cloudflare Web Analytics for anonymous, cookie-free visit counts. Your best streaks are saved only in your own browser.</p>
  </footer>
 </main>
 <script>
 // Active sport's data, loaded from data-<sport>.js (each file sets SPORTS.<sport> = {ymin,ymax,D,TEAMS,CATS?}).
 let D=[],TEAMS={},CATS={},sport="nfl";
-try{const sp=localStorage.getItem("nflHLSport");if(sp==="mlb"||sp==="nba"||sp==="nhl"||sp==="wnba")sport=sp}catch(e){}
+const SOCCER=["epl","laliga","bundesliga","seriea","ligue1","ucl","nwsl"];
+try{const sp=localStorage.getItem("nflHLSport");if(sp==="mlb"||sp==="nba"||sp==="nhl"||sp==="wnba"||SOCCER.includes(sp))sport=sp}catch(e){}
 // ---- GAME ----
 // Closeness band: the two values must differ by at least MIN_DIFF (avoids near-ties)
 // and at most MAX_DIFF (avoids lopsided rounds), measured against the larger value.
@@ -150,6 +152,12 @@ const SPORT_CFG={
   floor:{g:25,a:35,pts:60,sog:200,ppg:8,pim:100,w:25,so:4,sv:1500},
   cfloor:{g:250,a:400,pts:650,sog:2000,ppg:80,pim:800,w:200,so:25,sv:8000}}
 };
+// Soccer: each league is its own data file/sport key; the Soccer button opens a league row. Only each season's top-100 players per stat are in the data.
+{const EU={floor:{goals:10,assists:7,yc:9,rc:2,saves:90},cfloor:{goals:50,assists:30,yc:40,rc:5,saves:500}};
+ [["epl","Premier League"],["laliga","La Liga"],["bundesliga","Bundesliga"],["seriea","Serie A"],["ligue1","Ligue 1"]].forEach(([k,n])=>SPORT_CFG[k]=Object.assign({name:n},EU));
+ SPORT_CFG.ucl={name:"Champions League",floor:{goals:4,assists:3,yc:3,rc:1,saves:20},cfloor:{goals:15,assists:8,yc:8,rc:3,saves:80}};
+ SPORT_CFG.nwsl={name:"NWSL",floor:{goals:6,assists:3,yc:4,rc:1,saves:70},cfloor:{goals:20,assists:10,yc:12,rc:3,saves:250}};}
+let lastLeague=SOCCER.includes(sport)?sport:"epl";
 // optional per-sport display hooks from the data file (seasonLabel, careerLabel)
 const SD=()=>(window.SPORTS&&SPORTS[sport])||{};
 const seasonLbl=y=>(SD().seasonLabel||(v=>v))(y);
@@ -267,11 +275,15 @@ async function setSport(s){
   ["y0","y1"].forEach(id=>{$(id).min=YMIN;$(id).max=YMAX});
   $("y0").value=YMIN;$("y1").value=YMAX;
   careerKey="";last="";
-  document.querySelectorAll("#sports button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.p===s));
+  const soc=SOCCER.includes(s);if(soc)lastLeague=s;
+  document.querySelectorAll("#sports button").forEach(b=>b.setAttribute("aria-pressed",soc?b.dataset.p==="soccer":b.dataset.p===s));
+  $("leagues").hidden=!soc;
+  document.querySelectorAll("#leagues button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.l===s));
   syncYears("y1");cy0=y0;cy1=y1;
   setScope(scope);
 }
-document.querySelectorAll("#sports button").forEach(b=>b.onclick=()=>{if(b.dataset.p!==sport)setSport(b.dataset.p)});
+document.querySelectorAll("#sports button").forEach(b=>b.onclick=()=>{const p=b.dataset.p==="soccer"?lastLeague:b.dataset.p;if(p!==sport)setSport(p)});
+document.querySelectorAll("#leagues button").forEach(b=>b.onclick=()=>{if(b.dataset.l!==sport)setSport(b.dataset.l)});
 function syncYears(src){
  let a=+$("y0").value,b=+$("y1").value;
  if(a>b){if(src==="y0")a=b;else b=a}
