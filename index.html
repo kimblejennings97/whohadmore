@@ -60,6 +60,14 @@ button.p:disabled{cursor:default}
 #next{all:unset;cursor:pointer;background:var(--flag);color:#0e1726;font:800 20px "Barlow Condensed",Impact,sans-serif;padding:10px 28px;border-radius:8px}
 #next:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
 .hint{color:var(--mute);font-size:14px;margin-top:28px;text-align:center}
+dialog#warn{background:var(--card);color:var(--ink);border:2px solid var(--line);border-radius:10px;padding:20px 22px;max-width:min(380px,calc(100vw - 32px))}
+dialog#warn::backdrop{background:rgba(0,0,0,.6)}
+dialog#warn h3{font:800 24px/1 "Barlow Condensed",Impact,sans-serif;margin:0 0 8px}
+dialog#warn p{margin:0 0 16px}
+.dlg{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+.dlg button{all:unset;cursor:pointer;padding:8px 18px;border:2px solid var(--line);border-radius:8px;font:800 18px "Barlow Condensed",Impact,sans-serif}
+.dlg button[value="ok"]{background:var(--flag);border-color:var(--flag);color:#0e1726}
+.dlg button:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
 .legal{margin-top:36px;padding-top:16px;border-top:1px solid var(--line);color:var(--mute);font-size:13px;line-height:1.5;text-align:center}
 .legal p{margin:0 0 8px}
 @media (max-width:480px){.vs{gap:10px}button.p{padding:16px 8px;min-height:170px}.v{font-size:44px}}
@@ -76,7 +84,7 @@ button.p:disabled{cursor:default}
    <div><b id="best">0</b>Best streak</div>
   </div>
  </div>
- <div class="modes" id="sports" role="group" aria-label="Sport"><button data-p="nfl" aria-pressed="true">NFL</button><button data-p="mlb" aria-pressed="false">MLB</button><button data-p="nba" aria-pressed="false">NBA</button><button data-p="nhl" aria-pressed="false">NHL</button></div>
+ <div class="modes" id="sports" role="group" aria-label="Sport"><button data-p="nfl" aria-pressed="true">NFL</button><button data-p="mlb" aria-pressed="false">MLB</button><button data-p="nba" aria-pressed="false">NBA</button><button data-p="nhl" aria-pressed="false">NHL</button><button data-p="wnba" aria-pressed="false">WNBA</button></div>
   <div class="modes" id="scopes"role="group" aria-label="Game type"><button data-s="season" aria-pressed="true">Single season</button><button data-s="career" aria-pressed="false">Career</button><span id="sdesc"></span></div>
   <div class="modes" role="group" aria-label="Difficulty"><button data-m="easy" aria-pressed="false">Easy</button><button data-m="hard" aria-pressed="true">Hard</button><span id="mdesc"></span></div>
  <div class="yrs">
@@ -90,16 +98,17 @@ button.p:disabled{cursor:default}
  <div class="vs" id="vs"></div>
  <div class="foot"><div id="msg" role="status"></div><button id="next" hidden>Next round</button><button id="skip" hidden></button></div>
  <p class="hint">Press 1 or 2 to pick, Enter for the next round. You must answer each round to move on.</p>
+ <dialog id="warn" aria-labelledby="wt"><form method="dialog"><h3 id="wt">Change the dates?</h3><p>Changing the date range will reset this round and your current score. Your best streak is kept.</p><div class="dlg"><button value="cancel">Keep playing</button><button value="ok" id="wok">Change dates</button></div></form></dialog>
  <footer class="legal">
-  <p>An unofficial fan project for fun. Not affiliated with, endorsed by, or sponsored by the NFL, MLB, NBA, NHL, or any team or player. All names, team names and abbreviations are the property of their respective owners.</p>
-  <p>Stats from public data sources: NFL via nflverse, MLB via the MLB Stats API, NBA via NBA.com stats, NHL via the NHL stats API. Figures cover regular seasons only, may contain errors or gaps, and career totals include only the seasons shown in the data range.</p>
+  <p>An unofficial fan project for fun. Not affiliated with, endorsed by, or sponsored by the NFL, MLB, NBA, WNBA, NHL, or any team or player. All names, team names and abbreviations are the property of their respective owners.</p>
+  <p>Stats from public data sources: NFL via nflverse, MLB via the MLB Stats API, NBA and WNBA via NBA.com stats, NHL via the NHL stats API. Figures cover regular seasons only, may contain errors or gaps, and career totals include only the seasons shown in the data range.</p>
   <p>This site has no accounts. It uses Cloudflare Web Analytics for anonymous, cookie-free visit counts. Your best streaks are saved only in your own browser.</p>
  </footer>
 </main>
 <script>
 // Active sport's data, loaded from data-<sport>.js (each file sets SPORTS.<sport> = {ymin,ymax,D,TEAMS,CATS?}).
 let D=[],TEAMS={},CATS={},sport="nfl";
-try{const sp=localStorage.getItem("nflHLSport");if(sp==="mlb"||sp==="nba"||sp==="nhl")sport=sp}catch(e){}
+try{const sp=localStorage.getItem("nflHLSport");if(sp==="mlb"||sp==="nba"||sp==="nhl"||sp==="wnba")sport=sp}catch(e){}
 // ---- GAME ----
 // Closeness band: the two values must differ by at least MIN_DIFF (avoids near-ties)
 // and at most MAX_DIFF (avoids lopsided rounds), measured against the larger value.
@@ -116,7 +125,7 @@ function loadBest(){try{best=+localStorage.getItem(bestKey())||0}catch(e){best=0
 const dp=(x,y)=>Math.abs(x-y)/Math.max(x,y);
 const tc=t=>TEAMS[t]&&TEAMS[t].color||"transparent";
 const logo=t=>`<span class="lg" aria-hidden="true" style="border-color:${tc(t)==="transparent"?"var(--line)":tc(t)}">${t}</span>`;
-let YMIN=1999,YMAX=2026,y0=YMIN,y1=YMAX;
+let YMIN=1999,YMAX=2026,y0=YMIN,y1=YMAX,cy0=y0,cy1=y1; // cy0/cy1 = last committed range
 // Career mode: sum each player's stats over the selected season range. A stat only counts toward a
 // career if the player has it in at least MIN_CAREER_SEASONS seasons of the data (keeps cameo rows out).
 let scope="season";
@@ -134,6 +143,9 @@ const SPORT_CFG={
  nba:{name:"NBA",
   floor:{pts:18,reb:8,ast:5,stl:1.3,blk:1.2,fg3m:2},
   cfloor:{pts:17,reb:7,ast:5,stl:1.2,blk:1,fg3m:1.8}},
+ wnba:{name:"WNBA",
+  floor:{pts:14,reb:6,ast:4,stl:1.2,blk:1,fg3m:1.8},
+  cfloor:{pts:13,reb:5.5,ast:3.5,stl:1.1,blk:0.8,fg3m:1.5}},
  nhl:{name:"NHL",
   floor:{g:25,a:35,pts:60,sog:200,ppg:8,pim:100,w:25,so:4,sv:1500},
   cfloor:{g:250,a:400,pts:650,sog:2000,ppg:80,pim:800,w:200,so:25,sv:8000}}
@@ -212,12 +224,13 @@ function choose(i){
  $("vs").classList.add("show");
  [...$("vs").children].forEach((b,j)=>{b.disabled=true;b.classList.add(j===w?"win":"lose")});
  if(ok){pts++;str++;if(str>best){best=str;try{localStorage.setItem(bestKey(),best)}catch(e){}}$("msg").textContent="Correct, +1 point";$("msg").style.color="var(--ok)"}
- else{str=0;$("msg").textContent="Not this time, streak reset";$("msg").style.color="var(--bad)"}
+ else{str=0;skipsLeft=MODES[mode].skips;$("msg").textContent="Not this time, streak reset"+(MODES[mode].skips?" and skips restored":"");$("msg").style.color="var(--bad)"}
  $("pts").textContent=pts;$("str").textContent=str;$("best").textContent=best;
  $("next").hidden=false;$("next").focus();
 }
 $("next").onclick=newRound;
 document.addEventListener("keydown",e=>{
+ if($("warn").open)return;
  if(e.key==="1")choose(0);else if(e.key==="2")choose(1);
  else if(e.key==="Enter"&&locked&&document.activeElement!==$("next"))newRound();
 });
@@ -255,7 +268,7 @@ async function setSport(s){
   $("y0").value=YMIN;$("y1").value=YMAX;
   careerKey="";last="";
   document.querySelectorAll("#sports button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.p===s));
-  syncYears("y1");
+  syncYears("y1");cy0=y0;cy1=y1;
   setScope(scope);
 }
 document.querySelectorAll("#sports button").forEach(b=>b.onclick=()=>{if(b.dataset.p!==sport)setSport(b.dataset.p)});
@@ -267,7 +280,20 @@ function syncYears(src){
  const span=YMAX-YMIN;
  $("fill").style.left=(a-YMIN)/span*100+"%";$("fill").style.width=(b-a)/span*100+"%";
 }
-["y0","y1"].forEach(id=>{$(id).addEventListener("input",()=>syncYears(id));$(id).addEventListener("change",()=>{if(!cur)newRound()})});
+["y0","y1"].forEach(id=>{$(id).addEventListener("input",()=>syncYears(id));$(id).addEventListener("change",()=>rangeChanged(id))});
+// Dragging only previews the range. On release: if a score is running, ask first; then reset and redraw the round.
+function commitRange(){
+  cy0=y0;cy1=y1;pts=0;str=0;skipsLeft=MODES[mode].skips;
+  $("pts").textContent=0;$("str").textContent=0;
+  newRound();
+}
+function revertRange(){$("y0").value=cy0;$("y1").value=cy1;syncYears("y1")}
+function rangeChanged(id){
+  syncYears(id);
+  if(y0===cy0&&y1===cy1)return;
+  if(pts>0){$("warn").showModal()}else commitRange();
+}
+$("warn").addEventListener("close",()=>{if($("warn").returnValue==="ok")commitRange();else revertRange();$("warn").returnValue=""});
 syncYears("y1");
 setSport(sport);
 </script>
