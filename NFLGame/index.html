@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Who Had More?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;800&family=Barlow:wght@400;500&display=swap">
+<style>
+:root{--bg:#0e1726;--card:#16233a;--line:#2b3d5c;--ink:#f3f1e8;--mute:#9fb0cc;--flag:#ffd23f;--ok:#4cd08a;--bad:#ff6b5e;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){--bg:#f3f1e8;--card:#fff;--line:#c9cfdb;--ink:#0e1726;--mute:#51607c;--flag:#b88600;--ok:#168a52;--bad:#c8372b}}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.5 Barlow,system-ui,sans-serif;min-height:100vh}
+main{max-width:760px;margin:0 auto;padding:24px 16px 40px}
+.bar{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+h1{font:800 28px/1 "Barlow Condensed",Impact,sans-serif;margin:0;letter-spacing:.02em}
+.score{display:flex;gap:20px;color:var(--mute)}
+.score b{display:block;font:800 30px/1 "Barlow Condensed",Impact,sans-serif;color:var(--ink)}
+.stat{margin:36px 0 24px;text-align:center}
+.stat small{color:var(--mute)}
+.stat h2{font:800 clamp(44px,11vw,84px)/.95 "Barlow Condensed",Impact,sans-serif;margin:6px 0 0;color:var(--flag)}
+.vs{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+button.p{all:unset;box-sizing:border-box;cursor:pointer;background:var(--card);border:2px solid var(--line);border-radius:10px;padding:22px 16px;text-align:center;display:flex;flex-direction:column;gap:6px;min-height:190px;justify-content:center}
+button.p:hover:not(:disabled){border-color:var(--flag)}
+button.p:focus-visible{outline:3px solid var(--flag);outline-offset:2px}
+button.p:disabled{cursor:default}
+.n{font:800 clamp(26px,6vw,38px)/1 "Barlow Condensed",Impact,sans-serif}
+.m{color:var(--mute)}
+.lg{width:54px;height:54px;margin:0 auto 4px;border-radius:50%;border:4px solid var(--line);display:flex;align-items:center;justify-content:center;font:800 17px "Barlow Condensed",Impact,sans-serif;letter-spacing:.03em;color:var(--ink)}
+#skip{all:unset;cursor:pointer;color:var(--mute);font:600 16px Barlow,system-ui,sans-serif;text-decoration:underline;padding:8px}
+#skip:focus-visible{outline:3px solid var(--flag);outline-offset:2px}
+.modes{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:16px}
+.modes button{all:unset;cursor:pointer;padding:5px 16px;border:2px solid var(--line);border-radius:8px;font:800 18px "Barlow Condensed",Impact,sans-serif}
+.modes button[aria-pressed="true"]{background:var(--flag);border-color:var(--flag);color:#0e1726}
+.modes button:focus-visible{outline:3px solid var(--flag);outline-offset:2px}
+#mdesc,#sdesc{color:var(--mute);font-size:15px;margin-left:4px}
+.yrs{margin-top:18px}
+.yl{display:flex;justify-content:space-between;align-items:baseline;color:var(--mute);font-size:15px}
+.yl b{color:var(--ink);font:800 22px "Barlow Condensed",Impact,sans-serif}
+.rng{position:relative;height:28px}
+.trk,.fill{position:absolute;top:12px;height:4px;border-radius:2px}
+.trk{left:0;right:0;background:var(--line)}
+.fill{background:var(--flag)}
+.rng input{position:absolute;left:0;top:0;width:100%;height:28px;margin:0;background:none;pointer-events:none;-webkit-appearance:none;appearance:none}
+.rng input::-webkit-slider-runnable-track{height:28px;background:none}
+.rng input::-moz-range-track{background:none}
+.rng input::-webkit-slider-thumb{-webkit-appearance:none;pointer-events:all;width:22px;height:22px;margin-top:3px;border-radius:50%;background:var(--flag);border:2px solid var(--bg);cursor:pointer}
+.rng input::-moz-range-thumb{pointer-events:all;width:18px;height:18px;border-radius:50%;background:var(--flag);border:2px solid var(--bg);cursor:pointer}
+.rng input:focus-visible::-webkit-slider-thumb{outline:3px solid var(--ink)}
+.rng input:focus-visible::-moz-range-thumb{outline:3px solid var(--ink)}
+.v{font:800 54px/1 "Barlow Condensed",Impact,sans-serif;min-height:54px;visibility:hidden}
+.show .v{visibility:visible}
+.win{border-color:var(--ok)!important}.win .v{color:var(--ok)}
+.lose{border-color:var(--bad)!important;opacity:.85}.lose .v{color:var(--bad)}
+.foot{margin-top:22px;text-align:center;min-height:90px}
+#msg{font:800 26px "Barlow Condensed",Impact,sans-serif;margin-bottom:10px}
+[hidden]{display:none!important}
+#next{all:unset;cursor:pointer;background:var(--flag);color:#0e1726;font:800 20px "Barlow Condensed",Impact,sans-serif;padding:10px 28px;border-radius:8px}
+#next:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.hint{color:var(--mute);font-size:14px;margin-top:28px;text-align:center}
+dialog#warn{background:var(--card);color:var(--ink);border:2px solid var(--line);border-radius:10px;padding:20px 22px;max-width:min(380px,calc(100vw - 32px))}
+dialog#warn::backdrop{background:rgba(0,0,0,.6)}
+dialog#warn h3{font:800 24px/1 "Barlow Condensed",Impact,sans-serif;margin:0 0 8px}
+dialog#warn p{margin:0 0 16px}
+.dlg{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+.dlg button{all:unset;cursor:pointer;padding:8px 18px;border:2px solid var(--line);border-radius:8px;font:800 18px "Barlow Condensed",Impact,sans-serif}
+.dlg button[value="ok"]{background:var(--flag);border-color:var(--flag);color:#0e1726}
+.dlg button:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.legal{margin-top:36px;padding-top:16px;border-top:1px solid var(--line);color:var(--mute);font-size:13px;line-height:1.5;text-align:center}
+.legal p{margin:0 0 8px}
+@media (max-width:480px){.vs{gap:10px}button.p{padding:16px 8px;min-height:170px}.v{font-size:44px}}
+@media (prefers-reduced-motion:no-preference){.v{transition:opacity .3s}}
+</style>
+</head>
+<body>
+<main>
+ <div class="bar">
+  <h1>Who had more?</h1>
+  <div class="score" aria-live="polite">
+   <div><b id="pts">0</b>Points</div>
+   <div><b id="str">0</b>Streak</div>
+   <div><b id="best">0</b>Best streak</div>
+  </div>
+ </div>
+ <div class="modes" id="sports" role="group" aria-label="Sport"><button data-p="nfl" aria-pressed="true">NFL</button><button data-p="mlb" aria-pressed="false">MLB</button><button data-p="nba" aria-pressed="false">NBA</button><button data-p="nhl" aria-pressed="false">NHL</button><button data-p="wnba" aria-pressed="false">WNBA</button></div>
+  <div class="modes" id="scopes"role="group" aria-label="Game type"><button data-s="season" aria-pressed="true">Single season</button><button data-s="career" aria-pressed="false">Career</button><span id="sdesc"></span></div>
+  <div class="modes" role="group" aria-label="Difficulty"><button data-m="easy" aria-pressed="false">Easy</button><button data-m="hard" aria-pressed="true">Hard</button><span id="mdesc"></span></div>
+ <div class="yrs">
+  <div class="yl"><span id="ylabel">Seasons to play from</span><b id="yv">1999–2026</b></div>
+  <div class="rng"><div class="trk"></div><div class="fill" id="fill"></div>
+   <input type="range" id="y0" min="1999" max="2026" value="1999" aria-label="First season">
+   <input type="range" id="y1" min="1999" max="2026" value="2026" aria-label="Last season">
+  </div>
+ </div>
+ <div class="stat"><small id="which">Which season had more…</small><h2 id="cat"></h2></div>
+ <div class="vs" id="vs"></div>
+ <div class="foot"><div id="msg" role="status"></div><button id="next" hidden>Next round</button><button id="skip" hidden></button></div>
+ <p class="hint">Press 1 or 2 to pick, Enter for the next round. You must answer each round to move on.</p>
+ <dialog id="warn" aria-labelledby="wt"><form method="dialog"><h3 id="wt">Change the dates?</h3><p>Changing the date range will reset this round and your current score. Your best streak is kept.</p><div class="dlg"><button value="cancel">Keep playing</button><button value="ok" id="wok">Change dates</button></div></form></dialog>
+ <footer class="legal">
+  <p>An unofficial fan project for fun. Not affiliated with, endorsed by, or sponsored by the NFL, MLB, NBA, WNBA, NHL, or any team or player. All names, team names and abbreviations are the property of their respective owners.</p>
+  <p>Stats from public data sources: NFL via nflverse, MLB via the MLB Stats API, NBA and WNBA via NBA.com stats, NHL via the NHL stats API. Figures cover regular seasons only, may contain errors or gaps, and career totals include only the seasons shown in the data range.</p>
+  <p>This site has no accounts. It uses Cloudflare Web Analytics for anonymous, cookie-free visit counts. Your best streaks are saved only in your own browser.</p>
+ </footer>
+</main>
+<script>
+// Active sport's data, loaded from data-<sport>.js (each file sets SPORTS.<sport> = {ymin,ymax,D,TEAMS,CATS?}).
+let D=[],TEAMS={},CATS={},sport="nfl";
+try{const sp=localStorage.getItem("nflHLSport");if(sp==="mlb"||sp==="nba"||sp==="nhl"||sp==="wnba")sport=sp}catch(e){}
+// ---- GAME ----
+// Closeness band: the two values must differ by at least MIN_DIFF (avoids near-ties)
+// and at most MAX_DIFF (avoids lopsided rounds), measured against the larger value.
+// Hard keeps the original band; easy asks for a bigger gap between the two values.
+const MODES={
+ easy:{min:.15,max:.40,label:"Easy: values differ by 15–40%, solid seasons only, 3 skips",skips:3,
+  // both players must reach these totals, which filters out role players and backups
+  floor:{passTD:20,passYds:3000,rushYds:900,rushTD:8,rec:70,recYds:900,recTD:8,sacks:9}},
+ hard:{min:.03,max:.25,label:"Hard: values differ by 3–25%, any season, no skips",floor:{},skips:0}
+};
+let mode="hard";
+try{const m=localStorage.getItem("nflHLMode");if(MODES[m])mode=m}catch(e){}
+function loadBest(){try{best=+localStorage.getItem(bestKey())||0}catch(e){best=0}}
+const dp=(x,y)=>Math.abs(x-y)/Math.max(x,y);
+const tc=t=>TEAMS[t]&&TEAMS[t].color||"transparent";
+const logo=t=>`<span class="lg" aria-hidden="true" style="border-color:${tc(t)==="transparent"?"var(--line)":tc(t)}">${t}</span>`;
+let YMIN=1999,YMAX=2026,y0=YMIN,y1=YMAX,cy0=y0,cy1=y1; // cy0/cy1 = last committed range
+// Career mode: sum each player's stats over the selected season range. A stat only counts toward a
+// career if the player has it in at least MIN_CAREER_SEASONS seasons of the data (keeps cameo rows out).
+let scope="season";
+try{const s=localStorage.getItem("nflHLScope");if(s==="career"||s==="season")scope=s}catch(e){}
+const MIN_CAREER_SEASONS=3;
+// Per-sport Easy-mode floors: floor = single season, cfloor = career total.
+const SPORT_CFG={
+ nfl:{name:"NFL",
+  floor:{passTD:20,passYds:3000,rushYds:900,rushTD:8,rec:70,recYds:900,recTD:8,sacks:9},
+  cfloor:{passTD:150,passYds:20000,rushYds:5000,rushTD:40,rec:500,recYds:6000,recTD:40,sacks:60}},
+ mlb:{name:"MLB",
+  cats:{hr:"Home runs",h:"Hits",rbi:"Runs batted in",r:"Runs scored",sb:"Stolen bases",bb:"Walks",dbl:"Doubles",k:"Strikeouts (pitching)",w:"Wins (pitching)",sv:"Saves"},
+  floor:{hr:25,h:150,rbi:80,r:85,sb:25,bb:70,dbl:30,k:150,w:12,sv:25},
+  cfloor:{hr:250,h:1800,rbi:900,r:1000,sb:250,bb:800,dbl:350,k:1800,w:130,sv:200}},
+ nba:{name:"NBA",
+  floor:{pts:18,reb:8,ast:5,stl:1.3,blk:1.2,fg3m:2},
+  cfloor:{pts:17,reb:7,ast:5,stl:1.2,blk:1,fg3m:1.8}},
+ wnba:{name:"WNBA",
+  floor:{pts:14,reb:6,ast:4,stl:1.2,blk:1,fg3m:1.8},
+  cfloor:{pts:13,reb:5.5,ast:3.5,stl:1.1,blk:0.8,fg3m:1.5}},
+ nhl:{name:"NHL",
+  floor:{g:25,a:35,pts:60,sog:200,ppg:8,pim:100,w:25,so:4,sv:1500},
+  cfloor:{g:250,a:400,pts:650,sog:2000,ppg:80,pim:800,w:200,so:25,sv:8000}}
+};
+// optional per-sport display hooks from the data file (seasonLabel, careerLabel)
+const SD=()=>(window.SPORTS&&SPORTS[sport])||{};
+const seasonLbl=y=>(SD().seasonLabel||(v=>v))(y);
+let careerCache=null,careerKey="";
+function careers(){
+  const key=y0+"-"+y1;if(careerKey===key)return careerCache;
+  const m=new Map(),pg=!!SD().perGame;
+  for(const r of D){
+   if(r[1]<y0||r[1]>y1)continue;
+   let e=m.get(r[0]);if(!e){e={yrs:new Set(),last:0,team:"",s:{},c:{},w:{}};m.set(r[0],e)}
+   e.yrs.add(r[1]);if(r[1]>=e.last){e.last=r[1];e.team=r[2]}
+   // per-game sports: row stats are averages plus "gp"; career average = games-weighted mean
+   const w=pg?(r[3].gp||1):1;
+   for(const k in r[3]){if(pg&&k==="gp")continue;e.s[k]=(e.s[k]||0)+r[3][k]*w;e.c[k]=(e.c[k]||0)+1;e.w[k]=(e.w[k]||0)+w}
+  }
+  const out=[];
+  m.forEach((e,name)=>{
+   const s={};for(const k in e.s)if(e.c[k]>=MIN_CAREER_SEASONS)s[k]=Math.round(e.s[k]/(pg?e.w[k]:1)*10)/10;
+   if(Object.keys(s).length)out.push([name,(SD().careerLabel||((a,b)=>a+"–"+b))(Math.min(...e.yrs),e.last),e.team,s,e.yrs.size]);
+  });
+  careerCache=out;careerKey=key;return out;
+}
+const src=()=>scope==="career"?careers():D;
+const sl=r=>scope==="career"?`${r[1]} career (${r[4]} seasons)`:`${seasonLbl(r[1])} season`;
+const bestKey=()=>"nflHLBest_"+mode+(scope==="career"?"_career":"")+(sport==="nfl"?"":"_"+sport);
+const floorOf=k=>mode!=="easy"?0:((scope==="career"?SPORT_CFG[sport].cfloor:SPORT_CFG[sport].floor)[k]||0);
+const inPool=(r,k)=>r[3][k]!==undefined&&r[3][k]>=floorOf(k)&&(scope==="career"||(r[1]>=y0&&r[1]<=y1));
+function findPair(){
+ const S=src(),keys=Object.keys(CATS).filter(k=>S.filter(r=>inPool(r,k)).length>=2);
+ if(!keys.length)return null;
+ for(let t=0;t<400;t++){
+  const band=t<300,k=pick(keys),pool=S.filter(r=>inPool(r,k)),a=pick(pool);
+  const c=pool.filter(b=>{
+   if(b===a||b[0]===a[0]||a[3][k]===b[3][k])return false;
+   const d=dp(a[3][k],b[3][k]);
+   return !band||(d>=MODES[mode].min&&d<=MODES[mode].max);
+  });
+  if(!c.length)continue;
+  const b=pick(c),id=k+a[0]+a[1]+b[0]+b[1];
+  if(id===last)continue;
+  last=id;
+  return {k,p:Math.random()<.5?[a,b]:[b,a]};
+ }
+}
+const $=id=>document.getElementById(id);
+let pts=0,str=0,best=0,cur=null,locked=false,last="",skipsLeft=0;
+loadBest();
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const fmt=n=>SD().perGame?n.toFixed(1):Number.isInteger(n)?n.toLocaleString():n.toFixed(1);
+function newRound(){
+ const pr=findPair();
+ if(!pr){
+  cur=null;locked=true;
+  $("cat").textContent="No matchups";$("skip").hidden=true;$("vs").innerHTML="";$("next").hidden=true;
+  $("msg").textContent="Widen the season range or switch to Hard mode.";$("msg").style.color="var(--mute)";
+  return;
+ }
+ const {k,p}=pr;
+ cur={k,p};locked=false;
+ $("cat").textContent=CATS[k];$("which").textContent=scope==="career"?"Which career total was higher…":"Which season had more…";
+ $("msg").textContent="";$("next").hidden=true;
+ $("vs").className="vs";updSkip();
+ $("vs").innerHTML=cur.p.map((r,i)=>`<button class="p" style="box-shadow:inset 0 6px 0 ${tc(r[2])}" data-i="${i}" aria-label="${sl(r)} ${r[0]}">${logo(r[2])}<span class="n">${r[0]}</span><span class="m">${sl(r)}· ${r[2]}</span><span class="v">${fmt(r[3][k])}</span></button>`).join("");
+ $("vs").querySelectorAll("button").forEach(b=>b.onclick=()=>choose(+b.dataset.i));
+}
+function updSkip(){const s=$("skip"),ok=MODES[mode].skips>0&&cur&&!locked;s.hidden=!ok;if(ok){s.textContent="Skip this round ("+skipsLeft+" left)";s.disabled=skipsLeft<1;s.style.opacity=skipsLeft<1?.4:1;s.style.cursor=skipsLeft<1?"default":"pointer"}}
+function skip(){if(locked||!cur||skipsLeft<1)return;skipsLeft--;newRound()}
+$("skip").onclick=skip;
+function choose(i){
+ if(locked||!cur)return;locked=true;$("skip").hidden=true;
+ const v=cur.p.map(r=>r[3][cur.k]),w=v[0]>v[1]?0:1,ok=i===w;
+ $("vs").classList.add("show");
+ [...$("vs").children].forEach((b,j)=>{b.disabled=true;b.classList.add(j===w?"win":"lose")});
+ if(ok){pts++;str++;if(str>best){best=str;try{localStorage.setItem(bestKey(),best)}catch(e){}}$("msg").textContent="Correct, +1 point";$("msg").style.color="var(--ok)"}
+ else{str=0;skipsLeft=MODES[mode].skips;$("msg").textContent="Not this time, streak reset"+(MODES[mode].skips?" and skips restored":"");$("msg").style.color="var(--bad)"}
+ $("pts").textContent=pts;$("str").textContent=str;$("best").textContent=best;
+ $("next").hidden=false;$("next").focus();
+}
+$("next").onclick=newRound;
+document.addEventListener("keydown",e=>{
+ if($("warn").open)return;
+ if(e.key==="1")choose(0);else if(e.key==="2")choose(1);
+ else if(e.key==="Enter"&&locked&&document.activeElement!==$("next"))newRound();
+});
+function setMode(m){
+ mode=m;try{localStorage.setItem("nflHLMode",m)}catch(e){}
+ pts=0;str=0;skipsLeft=MODES[m].skips;loadBest();
+ $("pts").textContent=0;$("str").textContent=0;$("best").textContent=best;
+ document.querySelectorAll(".modes button[data-m]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.m===m));
+ $("mdesc").textContent=MODES[m].label;
+ newRound();
+}
+document.querySelectorAll(".modes button[data-m]").forEach(b=>b.onclick=()=>setMode(b.dataset.m));
+function setScope(s){
+  scope=s;try{localStorage.setItem("nflHLScope",s)}catch(e){}
+  document.querySelectorAll("#scopes button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.s===s));
+  $("sdesc").textContent=s==="career"?"Career totals summed from each player's seasons in the data, within the range below":"";
+  $("ylabel").textContent=s==="career"?"Seasons to count":"Seasons to play from";
+  setMode(mode);
+}
+document.querySelectorAll("#scopes button").forEach(b=>b.onclick=()=>setScope(b.dataset.s));
+function loadSport(s){return new Promise((res,rej)=>{
+  if(window.SPORTS&&SPORTS[s])return res();
+  const el=document.createElement("script");el.src="data-"+s+".js";el.onload=res;el.onerror=rej;document.head.appendChild(el);
+ })}
+async function setSport(s){
+  $("msg").textContent="Loading "+SPORT_CFG[s].name+" data…";$("msg").style.color="var(--mute)";
+  try{await loadSport(s)}catch(e){
+   if(s==="nfl"){$("msg").textContent="Couldn't load game data. Check your connection and reload.";return}
+   $("msg").textContent="Couldn't load "+SPORT_CFG[s].name+" data, showing NFL.";s="nfl";
+   try{await loadSport(s)}catch(e2){$("msg").textContent="Couldn't load game data. Check your connection and reload.";return}
+  }
+  sport=s;try{localStorage.setItem("nflHLSport",s)}catch(e){}
+  const d=SPORTS[s];D=d.D;TEAMS=d.TEAMS;CATS=d.CATS||SPORT_CFG[s].cats;YMIN=d.ymin;YMAX=d.ymax;
+  ["y0","y1"].forEach(id=>{$(id).min=YMIN;$(id).max=YMAX});
+  $("y0").value=YMIN;$("y1").value=YMAX;
+  careerKey="";last="";
+  document.querySelectorAll("#sports button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.p===s));
+  syncYears("y1");cy0=y0;cy1=y1;
+  setScope(scope);
+}
+document.querySelectorAll("#sports button").forEach(b=>b.onclick=()=>{if(b.dataset.p!==sport)setSport(b.dataset.p)});
+function syncYears(src){
+ let a=+$("y0").value,b=+$("y1").value;
+ if(a>b){if(src==="y0")a=b;else b=a}
+ y0=a;y1=b;$("y0").value=a;$("y1").value=b;
+ $("yv").textContent=a===b?seasonLbl(a):(SD().careerLabel||((x,y)=>x+"–"+y))(a,b);
+ const span=YMAX-YMIN;
+ $("fill").style.left=(a-YMIN)/span*100+"%";$("fill").style.width=(b-a)/span*100+"%";
+}
+["y0","y1"].forEach(id=>{$(id).addEventListener("input",()=>syncYears(id));$(id).addEventListener("change",()=>rangeChanged(id))});
+// Dragging only previews the range. On release: if a score is running, ask first; then reset and redraw the round.
+function commitRange(){
+  cy0=y0;cy1=y1;pts=0;str=0;skipsLeft=MODES[mode].skips;
+  $("pts").textContent=0;$("str").textContent=0;
+  newRound();
+}
+function revertRange(){$("y0").value=cy0;$("y1").value=cy1;syncYears("y1")}
+function rangeChanged(id){
+  syncYears(id);
+  if(y0===cy0&&y1===cy1)return;
+  if(pts>0){$("warn").showModal()}else commitRange();
+}
+$("warn").addEventListener("close",()=>{if($("warn").returnValue==="ok")commitRange();else revertRange();$("warn").returnValue=""});
+syncYears("y1");
+setSport(sport);
+</script>
+<!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "10fdbd279d5d4a9cb4949d7b351db185"}'></script><!-- End Cloudflare Web Analytics -->
+</body>
+</html>
