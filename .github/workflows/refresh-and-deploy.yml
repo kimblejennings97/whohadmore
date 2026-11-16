@@ -1,0 +1,66 @@
+name: Refresh data and deploy
+
+# Daily: pull the current NFL / NBA / MLB season from the stat-analysis feed (rebuilt each morning
+# in season by github.com/kimblejennings97/stat-analysis), commit any changes, and publish to GitHub Pages.
+# Off season nothing changes, so nothing is committed or deployed.
+# Pushes to main (code changes) deploy straight away.
+
+on:
+  schedule:
+    - cron: "0 13 * * *"   # 13:00 UTC, after the stat-analysis data runs (10:00-11:00 UTC)
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: refresh-and-deploy
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.commit.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Refresh current seasons
+        run: node tools/refresh-current-season.mjs
+      - id: commit
+        name: Commit changes
+        run: |
+          if git diff --quiet; then echo "changed=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "Data refresh $(date -u +%F)"
+          git push
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    needs: refresh
+    # code pushes always deploy; scheduled/manual runs deploy only when the data changed
+    if: always() && (github.event_name == 'push' || needs.refresh.outputs.changed == 'true')
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Collect site files
+        run: mkdir _site && cp index.html data-*.js _site/
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4
